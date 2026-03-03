@@ -24,6 +24,15 @@
     <p id="msg" style="color: red;"></p>
 
     <script>
+        // 网页加载完成后自动执行
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const macFromUrl = urlParams.get('mac');
+            if (macFromUrl) {
+                // 获取 URL 中的 mac 参数，如果有自动填入机器码输入框
+                document.getElementById('macCode').value = macFromUrl;
+            }
+        };
         async function generateLic() {
             const actCode = document.getElementById('actCode').value.trim();
             const macCode = document.getElementById('macCode').value.trim();
