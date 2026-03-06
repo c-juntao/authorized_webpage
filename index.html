@@ -58,9 +58,9 @@
                     return;
                 }
 
-                const blob = new Blob([JSON.stringify(resData, null, 2)], {type: "application/json"});
+                // const blob = new Blob([JSON.stringify(resData, null, 2)], {type: "application/json"});
                 // 强制浏览器把它当成未知的二进制文件
-                // const blob = new Blob([JSON.stringify(resData)], {type: "application/octet-stream"});
+                const blob = new Blob([JSON.stringify(resData)], {type: "application/octet-stream"});
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
