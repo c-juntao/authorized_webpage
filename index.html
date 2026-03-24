@@ -1,81 +1,702 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>离线授权文件自助获取系统</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; max-width: 400px; margin: auto; }
-        input { width: 100%; padding: 10px; margin: 10px 0; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background-color: #4CAF50; color: white; border: none; font-size: 16px; cursor: pointer; }
-    </style>
-</head>
-<body>
-    <h2>自助获取离线授权 (.lic)</h2>
-    <p style="color: gray; font-size: 14px;">请填入您购买的激活码，以及离线电脑上显示的机器码。</p>
-    
-    <label>激活码 (Activation Code):</label>
-    <input type="text" id="actCode" placeholder="输入激活码">
-    
-    <label>机器码 (Machine UUID):</label>
-    <input type="text" id="macCode" placeholder="输入电脑上的机器码">
-    
-    <button onclick="generateLic()">一键生成并下载</button>
-    <p id="msg" style="color: red;"></p>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="托管魔方 - 无感人脸考勤+AI视觉批改，让老师少加班，让家长更安心，让机构招生变简单！">
+    <meta name="keywords" content="AI批改, 人脸考勤, 教育SaaS, 微信生态, 多租户管理">
+    <meta name="author" content="托管理魔方团队">
+    <title>托管理魔方 - 让教育更智能</title>
 
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Tailwind Config -->
     <script>
-        window.onload = function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const macFromUrl = urlParams.get('mac');
-            if (macFromUrl) {
-                document.getElementById('macCode').value = macFromUrl;
-            }
-        };
-        async function generateLic() {
-            const actCode = document.getElementById('actCode').value.trim();
-            const macCode = document.getElementById('macCode').value.trim();
-            const msgEl = document.getElementById('msg');
-            
-            if(!actCode || !macCode) { msgEl.innerText = "请填写完整信息！"; return; }
-            msgEl.innerText = "正在生成中，请稍候...";
-            msgEl.style.color = "blue";
-
-            try {
-                const response = await fetch('https://scihywbhymbofdzlqvqv.supabase.co/functions/v1/generate-license', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjaWh5d2JoeW1ib2ZkemxxdnF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMDAwOTAsImV4cCI6MjA4NzY3NjA5MH0.coyu5HIwn2MbX1L_hDDuBn90xCcOidXOhiVRCAi00mY' 
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        },
+                        secondary: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
                     },
-                    body: JSON.stringify({ activation_code: actCode, machine_uuid: macCode })
-                });
-                
-                const resData = await response.json();
-                
-                if (!response.ok) {
-                    msgEl.style.color = "red";
-                    msgEl.innerText = "失败：" + resData.error;
-                    return;
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
                 }
-
-                // const blob = new Blob([JSON.stringify(resData, null, 2)], {type: "application/json"});
-                // 强制浏览器把它当成未知的二进制文件
-                const blob = new Blob([JSON.stringify(resData)], {type: "application/octet-stream"});
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = macCode + ".lic";
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                
-                msgEl.style.color = "green";
-                msgEl.innerText = "✅ 生成成功！请将下载的 .lic 文件拷贝至离线电脑项目文件夹下即可。";
-            } catch (err) {
-                msgEl.style.color = "red";
-                msgEl.innerText = "网络错误，请稍后再试。";
             }
         }
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Custom Styles -->
+    <style>
+        * {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-pattern {
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%233b82f6' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+
+        .feature-card {
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.12);
+        }
+
+        .pricing-card {
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-8px);
+            border-color: #3b82f6;
+        }
+
+        .pricing-card.popular {
+            border-color: #3b82f6;
+            box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.1);
+        }
+
+        .nav-link {
+            position: relative;
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: #3b82f6;
+            transition: width 0.3s ease;
+        }
+
+        .nav-link:hover::after {
+            width: 100%;
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .mobile-menu {
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-white text-secondary-900 antialiased">
+    <!-- Navigation -->
+    <nav class="fixed w-full bg-white/95 backdrop-blur-sm shadow-sm z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex items-center space-x-2">
+                    <svg class="w-8 h-8 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    <span class="text-xl font-bold text-secondary-900">托管理魔方</span>
+                </div>
+
+                <!-- Desktop Navigation -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#features" class="nav-link text-secondary-600 hover:text-primary-600 font-medium">核心功能</a>
+                    <a href="#pricing" class="nav-link text-secondary-600 hover:text-primary-600 font-medium">收费标准</a>
+                    <a href="#testimonials" class="nav-link text-secondary-600 hover:text-primary-600 font-medium">客户评价</a>
+                    <a href="#contact" class="nav-link text-secondary-600 hover:text-primary-600 font-medium">联系我们</a>
+                </div>
+
+                <!-- CTA Buttons -->
+                <div class="hidden md:flex items-center space-x-4">
+                    <a href="/login" class="text-secondary-600 hover:text-primary-600 font-medium">登录</a>
+                    <a href="/login" class="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white px-6 py-2.5 rounded-lg font-medium transition-all shadow-lg shadow-primary-600/30">
+                        免费试用7天
+                    </a>
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <button id="mobile-menu-btn" class="md:hidden p-2 rounded-lg hover:bg-secondary-100">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="mobile-menu hidden md:hidden bg-white border-t">
+            <div class="px-4 py-4 space-y-4">
+                <a href="#features" class="block text-secondary-600 hover:text-primary-600 font-medium">核心功能</a>
+                <a href="#pricing" class="block text-secondary-600 hover:text-primary-600 font-medium">收费标准</a>
+                <a href="#testimonials" class="block text-secondary-600 hover:text-primary-600 font-medium">客户评价</a>
+                <a href="#contact" class="block text-secondary-600 hover:text-primary-600 font-medium">联系我们</a>
+                <div class="pt-4 border-t space-y-3">
+                    <a href="/login" class="block text-center text-secondary-600 hover:text-primary-600 font-medium">登录</a>
+                    <a href="/login" class="block text-center bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white px-6 py-2.5 rounded-lg font-medium">
+                        免费试用7天
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pt-24 pb-16 md:pt-32 md:pb-24 hero-pattern">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div class="animate-fade-in">
+                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold text-secondary-900 leading-tight mb-6">
+                        <span class="block">让老师少加班</span>
+                        <span class="block">让家长更安心</span>
+                        <span class="block">让机构招生变简单！</span>
+                    </h1>
+                    <div class="bg-gradient-to-r from-primary-50 to-secondary-50 p-6 rounded-xl mb-8">
+                        <p class="text-2xl md:text-3xl font-bold gradient-text mb-2">无感人脸考勤+AI视觉批改</p>
+                        <p class="text-secondary-600 text-lg">赋能教育机构数字化转型，提升管理效率300%</p>
+                    </div>
+                    <a href="/login" class="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white px-10 py-4 rounded-xl font-bold text-center transition-all shadow-2xl shadow-primary-600/40 inline-block transform hover:scale-105">
+                        免费试用7天
+                    </a>
+                    <p class="mt-4 text-sm text-secondary-500 flex items-center">
+                        <svg class="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        无需信用卡，7天无条件试用
+                    </p>
+                </div>
+                <div class="relative animate-fade-in" style="animation-delay: 0.2s;">
+                    <div class="bg-gradient-to-br from-primary-50 via-secondary-50 to-white rounded-3xl p-6 shadow-2xl overflow-hidden">
+                        <div class="aspect-[16/9] relative bg-gradient-to-r from-primary-500 via-primary-400 to-secondary-600 rounded-2xl overflow-hidden border-2 border-white shadow-xl">
+                            <svg class="absolute inset-0 w-full h-full opacity-10" viewBox="0 0 800 450">
+                                <rect width="800" height="450" fill="url(#gradient)" />
+                                <defs>
+                                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+                                        <stop offset="50%" style="stop-color:#667eea;stop-opacity:0.8" />
+                                        <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                            <div class="relative z-10 p-8 text-white">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-3 h-3 bg-red-400 rounded-full"></div>
+                                        <div class="w-3 h-3 bg-yellow-400 rounded-full"></div>
+                                        <div class="w-3 h-3 bg-green-400 rounded-full"></div>
+                                    </div>
+                                    <div class="bg-black/20 px-3 py-1 rounded text-sm font-mono">tuoguan-magic.com</div>
+                                </div>
+                                <div class="space-y-6">
+                                    <div class="flex items-center justify-between">
+                                        <div class="text-3xl font-bold">📊 智能管理平台</div>
+                                        <div class="bg-white/10 px-4 py-2 rounded-lg font-semibold">2026-03-24</div>
+                                    </div>
+                                    <div class="grid grid-cols-4 gap-3">
+                                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-3">
+                                            <div class="text-2xl font-bold">156</div>
+                                            <div class="text-xs text-gray-200 mt-1">今日考勤</div>
+                                        </div>
+                                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-3">
+                                            <div class="text-2xl font-bold">89%</div>
+                                            <div class="text-xs text-gray-200 mt-1">批改准确率</div>
+                                        </div>
+                                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-3">
+                                            <div class="text-2xl font-bold">23</div>
+                                            <div class="text-xs text-gray-200 mt-1">异常记录</div>
+                                        </div>
+                                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-3">
+                                            <div class="text-2xl font-bold">94%</div>
+                                            <div class="text-xs text-gray-200 mt-1">家长满意度</div>
+                                        </div>
+                                    </div>
+                                    <div class="h-32 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-xl animate-pulse-slow"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Badge -->
+                    <div class="absolute top-4 right-4 bg-gradient-to-r from-green-400 to-green-600 text-white px-4 py-2 rounded-lg font-bold shadow-lg animate-float">
+                        AI Powered
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl md:text-5xl font-bold text-secondary-900 mb-4">核心功能，赋能教育</h2>
+                <p class="text-xl text-secondary-600 max-w-3xl mx-auto">我们专注于解决教育机构的核心痛点，用科技让教育更简单</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div class="feature-card bg-white p-8 rounded-2xl shadow-xl border border-secondary-100 hover:border-primary-500">
+                    <div class="w-16 h-16 bg-gradient-to-br from-primary-100 to-primary-200 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+                        <svg class="w-10 h-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-secondary-900 mb-3">AI智能批改</h3>
+                    <p class="text-secondary-600 leading-relaxed mb-4">基于计算机视觉的作业批改系统，支持手写识别、公式识别，准确率高达95%，让老师从繁重的批改工作中解放出来。</p>
+                    <ul class="space-y-2">
+                        <li class="flex items-center text-sm text-secondary-600">
+                            <svg class="w-4 h-4 text-primary-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            支持多种题型
+                        </li>
+                        <li class="flex items-center text-sm text-secondary-600">
+                            <svg class="w-4 h-4 text-primary-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            个性化反馈
+                        </li>
+                        <li class="flex items-center text-sm text-secondary-600">
+                            <svg class="w-4 h-4 text-primary-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            数据可视化
+                        </li>
+                    </ul>
+                </div>
+                <div class="feature-card bg-white p-8 rounded-2xl shadow-xl border border-secondary-100 hover:border-primary-500">
+                    <div class="w-16 h-16 bg-gradient-to-br from-primary-100 to-primary-200 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+                        <svg class="w-10 h-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-secondary-900 mb-3">边缘计算安全考勤</h3>
+                    <p class="text-secondary-600 leading-relaxed mb-4">无感人脸识别技术，边缘计算设备在本地完成识别，数据不出设备，保障隐私安全，实时准确统计考勤数据。</p>
+                    <ul class="space-y-2">
+                        <li class="flex items-center text-sm text-secondary-600">
+                            <svg class="w-4 h-4 text-primary-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            本地边缘计算
+                        </li>
+                        <li class="flex items-center text-sm text-secondary-600">
+                            <svg class="w-4 h-4 text-primary-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            数据零上传
+                        </li>
+                        <li class="flex items-center text-sm text-secondary-600">
+                            <svg class="w-4 h-4 text-primary-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            99.5%识别准确率
+                        </li>
+                    </ul>
+                </div>
+                <div class="feature-card bg-white p-8 rounded-2xl shadow-xl border border-secondary-100 hover:border-primary-500">
+                    <div class="w-16 h-16 bg-gradient-to-br from-primary-100 to-primary-200 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+                        <svg class="w-10 h-10 text-primary-600" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm2 16H6v-2h8v2zm0-4H6v-2h8v2zm0-4H6V8h8v2z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-secondary-900 mb-3">微信生态</h3>
+                    <p class="text-secondary-600 leading-relaxed mb-4">无缝对接微信公众号、小程序，家长通过微信即可查看孩子考勤、作业、学习报告，提升机构服务体验和招生转化率。</p>
+                    <ul class="space-y-2">
+                        <li class="flex items-center text-sm text-secondary-600">
+                            <svg class="w-4 h-4 text-primary-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            公众号消息推送
+                        </li>
+                        <li class="flex items-center text-sm text-secondary-600">
+                            <svg class="w-4 h-4 text-primary-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            小程序数据查看
+                        </li>
+                        <li class="flex items-center text-sm text-secondary-600">
+                            <svg class="w-4 h-4 text-primary-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            一键分享招生
+                        </li>
+                    </ul>
+                </div>
+                <div class="feature-card bg-white p-8 rounded-2xl shadow-xl border border-secondary-100 hover:border-primary-500">
+                    <div class="w-16 h-16 bg-gradient-to-br from-primary-100 to-primary-200 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+                        <svg class="w-10 h-10 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-secondary-900 mb-3">SaaS多租户管理</h3>
+                    <p class="text-secondary-600 leading-relaxed mb-4">独立的多租户系统架构，每个教育机构拥有专属数据空间和管理后台，支持品牌定制，满足不同规模机构的个性化需求。</p>
+                    <ul class="space-y-2">
+                        <li class="flex items-center text-sm text-secondary-600">
+                            <svg class="w-4 h-4 text-primary-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            数据完全隔离
+                        </li>
+                        <li class="flex items-center text-sm text-secondary-600">
+                            <svg class="w-4 h-4 text-primary-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            品牌定制化
+                        </li>
+                        <li class="flex items-center text-sm text-secondary-600">
+                            <svg class="w-4 h-4 text-primary-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            一键升级
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-16 gradient-bg">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-4xl md:text-5xl font-bold text-white mb-6">告别繁琐，拥抱智能教育</h2>
+            <p class="text-xl text-white/90 mb-8">已经有500+教育机构在使用托管理魔方，提升教学管理效率300%</p>
+            <a href="/login" class="inline-block bg-white text-primary-600 hover:bg-secondary-50 px-10 py-4 rounded-xl font-bold text-xl transition-all shadow-2xl transform hover:scale-105">
+                立即免费试用7天
+            </a>
+            <p class="mt-4 text-white/70 text-lg">无需信用卡 • 专业客服支持 • 7天无条件退款</p>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="py-20 bg-secondary-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl md:text-5xl font-bold text-secondary-900 mb-4">灵活的定价方案</h2>
+                <p class="text-xl text-secondary-600 max-w-3xl mx-auto">根据您的机构规模选择最适合的方案</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                <!-- 基础版 -->
+                <div class="pricing-card bg-white p-8 rounded-2xl shadow-2xl">
+                    <div class="mb-6">
+                        <h3 class="text-2xl font-bold text-secondary-900 mb-2">基础版</h3>
+                        <p class="text-secondary-600">适合小型教育机构</p>
+                    </div>
+                    <div class="mb-6">
+                        <span class="text-5xl font-bold text-secondary-900">免费</span>
+                        <p class="text-secondary-600 mt-2">限50人以内</p>
+                    </div>
+                    <ul class="space-y-3 mb-8">
+                        <li class="flex items-center text-secondary-600">
+                            <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            基础考勤功能
+                        </li>
+                        <li class="flex items-center text-secondary-600">
+                            <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            数据统计报表
+                        </li>
+                        <li class="flex items-center text-secondary-400 line-through">
+                            <svg class="w-5 h-5 text-gray-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            AI智能批改
+                        </li>
+                        <li class="flex items-center text-secondary-400 line-through">
+                            <svg class="w-5 h-5 text-gray-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            微信生态对接
+                        </li>
+                    </ul>
+                    <a href="/login" class="block w-full bg-secondary-100 hover:bg-secondary-200 text-secondary-800 px-6 py-3 rounded-lg font-medium text-center transition-colors">
+                        开始使用
+                    </a>
+                </div>
+
+                <!-- 专业版 - 最推荐 -->
+                <div class="pricing-card bg-white p-8 rounded-2xl shadow-2xl popular border-4 border-primary-600 relative">
+                    <div class="absolute top-0 right-0 bg-gradient-to-r from-primary-600 to-primary-700 text-white px-4 py-1 rounded-bl-lg font-semibold text-sm">
+                        最推荐
+                    </div>
+                    <div class="mb-6 pt-6">
+                        <h3 class="text-2xl font-bold text-secondary-900 mb-2">专业版</h3>
+                        <p class="text-secondary-600">适合中型教育机构</p>
+                    </div>
+                    <div class="mb-6">
+                        <span class="text-5xl font-bold text-secondary-900">1999</span>
+                        <p class="text-secondary-600 mt-2">元/年</p>
+                    </div>
+                    <ul class="space-y-3 mb-8">
+                        <li class="flex items-center text-secondary-600">
+                            <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            AI智能批改（限1000张/月）
+                        </li>
+                        <li class="flex items-center text-secondary-600">
+                            <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            无感人脸考勤
+                        </li>
+                        <li class="flex items-center text-secondary-600">
+                            <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            微信公众号对接
+                        </li>
+                        <li class="flex items-center text-secondary-600">
+                            <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            数据完全隔离
+                        </li>
+                    </ul>
+                    <a href="/login" class="block w-full bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white px-6 py-3 rounded-lg font-medium text-center transition-all shadow-lg">
+                        立即购买
+                    </a>
+                </div>
+
+                <!-- 尊享版 -->
+                <div class="pricing-card bg-white p-8 rounded-2xl shadow-2xl">
+                    <div class="mb-6">
+                        <h3 class="text-2xl font-bold text-secondary-900 mb-2">尊享版</h3>
+                        <p class="text-secondary-600">适合大型教育机构</p>
+                    </div>
+                    <div class="mb-6">
+                        <span class="text-5xl font-bold text-secondary-900">4999</span>
+                        <p class="text-secondary-600 mt-2">元/年</p>
+                    </div>
+                    <ul class="space-y-3 mb-8">
+                        <li class="flex items-center text-secondary-600">
+                            <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            AI智能批改（不限量）
+                        </li>
+                        <li class="flex items-center text-secondary-600">
+                            <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            无感人脸考勤+边缘AI硬件
+                        </li>
+                        <li class="flex items-center text-secondary-600">
+                            <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            微信生态全功能对接
+                        </li>
+                        <li class="flex items-center text-secondary-600">
+                            <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            专属客服+定制开发
+                        </li>
+                    </ul>
+                    <a href="/login" class="block w-full bg-secondary-900 hover:bg-secondary-800 text-white px-6 py-3 rounded-lg font-medium text-center transition-colors">
+                        联系销售
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section id="testimonials" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl md:text-5xl font-bold text-secondary-900 mb-4">客户评价</h2>
+                <p class="text-xl text-secondary-600 max-w-3xl mx-auto">听听其他教育机构的使用体验</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-secondary-50 p-8 rounded-2xl border border-secondary-200">
+                    <div class="flex items-center mb-4">
+                        <svg class="w-12 h-12 text-primary-500 mr-3" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M14 17l-4 4V5a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2h-4v7zm-6 0l-4 4V3a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2h-4v7z" />
+                        </svg>
+                        <div>
+                            <div class="font-bold text-xl text-secondary-900">张校长 - 阳光小学</div>
+                            <div class="text-secondary-500 text-sm">使用1年</div>
+                        </div>
+                    </div>
+                    <p class="text-secondary-600 leading-relaxed">
+                        "自从使用了托管理魔方，我们学校的考勤管理效率提升了80%，老师们再也不需要手动统计考勤，可以把更多精力放在教学上。"
+                    </p>
+                </div>
+                <div class="bg-secondary-50 p-8 rounded-2xl border border-secondary-200">
+                    <div class="flex items-center mb-4">
+                        <svg class="w-12 h-12 text-primary-500 mr-3" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M14 17l-4 4V5a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2h-4v7zm-6 0l-4 4V3a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2h-4v7z" />
+                        </svg>
+                        <div>
+                            <div class="font-bold text-xl text-secondary-900">李老师 - 智慧培训中心</div>
+                            <div class="text-secondary-500 text-sm">使用6个月</div>
+                        </div>
+                    </div>
+                    <p class="text-secondary-600 leading-relaxed">
+                        "AI批改功能太棒了！准确率高达95%，而且能给出详细的错误分析，学生们的学习效率明显提升，家长们也非常满意。"
+                    </p>
+                </div>
+                <div class="bg-secondary-50 p-8 rounded-2xl border border-secondary-200">
+                    <div class="flex items-center mb-4">
+                        <svg class="w-12 h-12 text-primary-500 mr-3" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M14 17l-4 4V5a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2h-4v7zm-6 0l-4 4V3a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2h-4v7z" />
+                        </svg>
+                        <div>
+                            <div class="font-bold text-xl text-secondary-900">王主任 - 启航教育集团</div>
+                            <div class="text-secondary-500 text-sm">使用8个月</div>
+                        </div>
+                    </div>
+                    <p class="text-secondary-600 leading-relaxed">
+                        "边缘计算设备让我们在保障数据安全的同时实现了智能化管理，微信生态的对接更是让我们的招生转化率提升了30%，强烈推荐！"
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer id="contact" class="bg-secondary-900 text-white py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-12">
+                <div>
+                    <div class="flex items-center space-x-3 mb-6">
+                        <svg class="w-10 h-10 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                        <span class="text-2xl font-bold">托管理魔方</span>
+                    </div>
+                    <p class="text-secondary-400 mb-6">无感人脸考勤+AI视觉批改，让教育更智能，让管理更简单</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-secondary-400 hover:text-white transition-colors">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                        </a>
+                        <a href="#" class="text-secondary-400 hover:text-white transition-colors">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.397 0-.79-.023-1.177-.067a13.995 13.995 0 007.557 2.213c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/></svg>
+                        </a>
+                        <a href="#" class="text-secondary-400 hover:text-white transition-colors">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+                        </a>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold mb-6">产品</h3>
+                    <ul class="space-y-3 text-secondary-400">
+                        <li><a href="#features" class="hover:text-white transition-colors">核心功能</a></li>
+                        <li><a href="#pricing" class="hover:text-white transition-colors">收费标准</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">帮助中心</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">API文档</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold mb-6">公司</h3>
+                    <ul class="space-y-3 text-secondary-400">
+                        <li><a href="#" class="hover:text-white transition-colors">关于我们</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">加入我们</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">隐私政策</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">服务条款</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold mb-6">联系我们</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <p class="text-secondary-400 mb-2">📧 邮箱</p>
+                            <p class="text-white hover:text-primary-400 transition-colors cursor-pointer">contact@tuoguan-magic.com</p>
+                        </div>
+                        <div>
+                            <p class="text-secondary-400 mb-2">📱 微信</p>
+                            <p class="text-white">tgmagic888</p>
+                            <p class="text-sm text-secondary-400 mt-1">扫码添加商务微信</p>
+                        </div>
+                        <div>
+                            <p class="text-secondary-400 mb-2">📢 公众号</p>
+                            <div class="bg-white rounded-lg overflow-hidden w-32 h-32 border-2 border-dashed border-gray-400 flex items-center justify-center">
+                                <span class="text-gray-500 text-xs">公众号二维码占位图</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-secondary-800 mt-12 pt-8 text-center text-secondary-400">
+                <p class="text-sm">&copy; 2026 托管理魔方. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript for mobile menu -->
+    <script>
+        document.getElementById('mobile-menu-btn').addEventListener('click', function() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        });
     </script>
 </body>
 </html>

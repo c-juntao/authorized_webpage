@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>离线授权文件自助获取系统</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 400px; margin: auto; }
+        input { width: 100%; padding: 10px; margin: 10px 0; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background-color: #4CAF50; color: white; border: none; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h2>自助获取离线授权 (.lic)</h2>
+    <p style="color: gray; font-size: 14px;">请填入您购买的激活码，以及离线电脑上显示的机器码。</p>
+    
+    <label>激活码 (Activation Code):</label>
+    <input type="text" id="actCode" placeholder="输入激活码">
+    
+    <label>机器码 (Machine UUID):</label>
+    <input type="text" id="macCode" placeholder="输入电脑上的机器码">
+    
+    <button onclick="generateLic()">一键生成并下载</button>
+    <p id="msg" style="color: red;"></p>
+
+    <script>
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const macFromUrl = urlParams.get('mac');
+            if (macFromUrl) {
+                document.getElementById('macCode').value = macFromUrl;
+            }
+        };
+        async function generateLic() {
+            const actCode = document.getElementById('actCode').value.trim();
+            const macCode = document.getElementById('macCode').value.trim();
+            const msgEl = document.getElementById('msg');
+            
+            if(!actCode || !macCode) { msgEl.innerText = "请填写完整信息！"; return; }
+            msgEl.innerText = "正在生成中，请稍候...";
+            msgEl.style.color = "blue";
+
+            try {
+                const response = await fetch('https://scihywbhymbofdzlqvqv.supabase.co/functions/v1/generate-license', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjaWh5d2JoeW1ib2ZkemxxdnF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMDAwOTAsImV4cCI6MjA4NzY3NjA5MH0.coyu5HIwn2MbX1L_hDDuBn90xCcOidXOhiVRCAi00mY' 
+                    },
+                    body: JSON.stringify({ activation_code: actCode, machine_uuid: macCode })
+                });
+                
+                const resData = await response.json();
+                
+                if (!response.ok) {
+                    msgEl.style.color = "red";
+                    msgEl.innerText = "失败：" + resData.error;
+                    return;
+                }
+
+                // const blob = new Blob([JSON.stringify(resData, null, 2)], {type: "application/json"});
+                // 强制浏览器把它当成未知的二进制文件
+                const blob = new Blob([JSON.stringify(resData)], {type: "application/octet-stream"});
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = macCode + ".lic";
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                
+                msgEl.style.color = "green";
+                msgEl.innerText = "✅ 生成成功！请将下载的 .lic 文件拷贝至离线电脑项目文件夹下即可。";
+            } catch (err) {
+                msgEl.style.color = "red";
+                msgEl.innerText = "网络错误，请稍后再试。";
+            }
+        }
+    </script>
+</body>
+</html>
